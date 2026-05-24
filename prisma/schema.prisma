@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String             @id @default(uuid())
+  email       String             @unique
+  name        String?
+  resumeText  String?
+  dailyLimits Int                @default(20)
+  jobs        Job[]
+  sequences   OutreachSequence[]
+}
+
+model Job {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  title       String
+  company     String
+  url         String          @unique
+  description String
+  matchScore  Int?
+  status      JobStatus       @default(SCRAPED)
+  contacts    TargetContact[]
+  createdAt   DateTime        @default(now())
+}
+
+model TargetContact {
+  id          String             @id @default(uuid())
+  jobId       String
+  job         Job                @relation(fields: [jobId], references: [id])
+  name        String
+  title       String
+  email       String?
+  linkedinUrl String?
+  type        RoleType
+  sequences   OutreachSequence[]
+}
+
+model OutreachSequence {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  contactId String
+  contact   TargetContact  @relation(fields: [contactId], references: [id])
+  status    SeqStatus      @default(PENDING)
+  steps     SequenceStep[]
+  createdAt DateTime       @default(now())
+}
+
+model SequenceStep {
+  id           String           @id @default(uuid())
+  sequenceId   String
+  sequence     OutreachSequence @relation(fields: [sequenceId], references: [id])
+  stepOrder    Int
+  channel      Channel
+  content      String
+  scheduledFor DateTime
+  status       StepStatus       @default(QUEUED)
+}
+
+enum JobStatus {
+  SCRAPED
+  EVALUATED
+  OUTREACH_ACTIVE
+  APPLIED
+  REJECTED
+}
+
+enum RoleType {
+  HIRING_MANAGER
+  RECRUITER
+  PEER
+}
+
+enum SeqStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  REPLIED
+}
+
+enum Channel {
+  EMAIL
+  LINKEDIN_CONNECTION
+  LINKEDIN_MESSAGE
+}
+
+enum StepStatus {
+  QUEUED
+  SENT
+  FAILED
+}
